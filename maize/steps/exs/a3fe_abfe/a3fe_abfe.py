@@ -6,7 +6,7 @@
 import csv
 import logging
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Annotated, Any, Literal
@@ -38,6 +38,7 @@ class ABFEResult:
     smiles: str
     dgs: np.ndarray[np.float64]
     errors: np.ndarray[np.float64]
+    exceptions: list[Exception] = field(default_factory=list)
 
 
 class A3feABFE(Node):
@@ -80,6 +81,11 @@ class A3feABFE(Node):
     dump_to: FileParameter[Path] = FileParameter(optional=True)
     """A folder to dump all generated data to"""
 
+    tolerate_errors: Flag = Flag(default=False)
+    """
+    If ``True``, the node will carry on if individual ligand calculations fail.
+    """
+
     trial: Flag = Flag(default=False)
     """
     If ``True``, will not run FEP and produce random values,
@@ -98,126 +104,142 @@ class A3feABFE(Node):
 
         for lig_idx, ligand in enumerate(supplied_input_ligands):
 
-            self._check_ligand_neutral(ligand)
-            supplied_input_dir = self.inp_dir.value
-            speed = self.speed.value
+            try:
+                self._check_ligand_neutral(ligand)
+                supplied_input_dir = self.inp_dir.value
+                speed = self.speed.value
 
-            self.logger.debug(f"Work directory: {self.work_dir}")
+                self.logger.debug(f"Work directory: {self.work_dir}")
 
-            # Create a new input directory with all required files, including the
-            # ligand sdf.
-            parent_workdir = self.work_dir
-            created_input_dir = parent_workdir / "input"
-            created_input_dir.mkdir()
-            for file in supplied_input_dir.iterdir():
-                (created_input_dir / file.name).symlink_to(file)
-            ligand_sdf = created_input_dir / "ligand.sdf"
-            ligand.to_sdf(ligand_sdf)
+                # Create a new input directory with all required files, including the
+                # ligand sdf.
+                parent_workdir = self.work_dir
+                created_input_dir = parent_workdir / "input"
+                created_input_dir.mkdir()
+                for file in supplied_input_dir.iterdir():
+                    (created_input_dir / file.name).symlink_to(file)
+                ligand_sdf = created_input_dir / "ligand.sdf"
+                ligand.to_sdf(ligand_sdf)
 
-            # Set up the calculation
-            calc = a3.Calculation(
-                ensemble_size=self.n_repeats.value,
-                stream_log_level=logging.WARNING,
-            )
-            cfg = a3.SystemPreparationConfig()
-            cfg.forcefields["ligand"] = "gaff2"
-            lambda_values = {
-                a3.LegType.BOUND: {
-                    a3.StageType.RESTRAIN: [0.0, 1.0],
-                    a3.StageType.DISCHARGE: [0.0, 0.291, 0.54, 0.776, 1.0],
-                    a3.StageType.VANISH: [
-                        0.0,
-                        0.026,
-                        0.054,
-                        0.083,
-                        0.111,
-                        0.14,
-                        0.173,
-                        0.208,
-                        0.247,
-                        0.286,
-                        0.329,
-                        0.373,
-                        0.417,
-                        0.467,
-                        0.514,
-                        0.564,
-                        0.623,
-                        0.696,
-                        0.833,
-                        1.0,
-                    ],
-                },
-                a3.LegType.FREE: {
-                    a3.StageType.DISCHARGE: [0.0, 0.222, 0.447, 0.713, 1.0],
-                    a3.StageType.VANISH: [
-                        0.0,
-                        0.026,
-                        0.055,
-                        0.09,
-                        0.126,
-                        0.164,
-                        0.202,
-                        0.239,
-                        0.276,
-                        0.314,
-                        0.354,
-                        0.396,
-                        0.437,
-                        0.478,
-                        0.518,
-                        0.559,
-                        0.606,
-                        0.668,
-                        0.762,
-                        1.0,
-                    ],
-                },
-            }
-            cfg.lambda_values = lambda_values
-            cfg.slurm = True
-            if speed == "fast":  # Drop the equilibration times
-                cfg.runtime_npt_unrestrained = 50
-                cfg.runtime_npt = 50
-                cfg.ensemble_equilibration_time = 100
+                # Set up the calculation
+                calc = a3.Calculation(
+                    ensemble_size=self.n_repeats.value,
+                    stream_log_level=logging.WARNING,
+                )
+                cfg = a3.SystemPreparationConfig()
+                cfg.forcefields["ligand"] = "gaff2"
+                lambda_values = {
+                    a3.LegType.BOUND: {
+                        a3.StageType.RESTRAIN: [0.0, 1.0],
+                        a3.StageType.DISCHARGE: [0.0, 0.291, 0.54, 0.776, 1.0],
+                        a3.StageType.VANISH: [
+                            0.0,
+                            0.026,
+                            0.054,
+                            0.083,
+                            0.111,
+                            0.14,
+                            0.173,
+                            0.208,
+                            0.247,
+                            0.286,
+                            0.329,
+                            0.373,
+                            0.417,
+                            0.467,
+                            0.514,
+                            0.564,
+                            0.623,
+                            0.696,
+                            0.833,
+                            1.0,
+                        ],
+                    },
+                    a3.LegType.FREE: {
+                        a3.StageType.DISCHARGE: [0.0, 0.222, 0.447, 0.713, 1.0],
+                        a3.StageType.VANISH: [
+                            0.0,
+                            0.026,
+                            0.055,
+                            0.09,
+                            0.126,
+                            0.164,
+                            0.202,
+                            0.239,
+                            0.276,
+                            0.314,
+                            0.354,
+                            0.396,
+                            0.437,
+                            0.478,
+                            0.518,
+                            0.559,
+                            0.606,
+                            0.668,
+                            0.762,
+                            1.0,
+                        ],
+                    },
+                }
+                cfg.lambda_values = lambda_values
+                cfg.slurm = True
+                if speed == "fast":  # Drop the equilibration times
+                    cfg.runtime_npt_unrestrained = 50
+                    cfg.runtime_npt = 50
+                    cfg.ensemble_equilibration_time = 100
 
-            # Only run MD if we are not in trial mode
-            if not self.trial.value:
-                calc.setup(bound_leg_sysprep_config=cfg, free_leg_sysprep_config=cfg)
+                # Only run MD if we are not in trial mode
+                if not self.trial.value:
+                    calc.setup(bound_leg_sysprep_config=cfg, free_leg_sysprep_config=cfg)
 
-                # Run the calculation
-                runtime = 0.1 if speed == "fast" else 5
-                calc.run(adaptive=False, runtime=runtime)
-                calc.wait()
+                    # Run the calculation
+                    runtime = 0.1 if speed == "fast" else 5
+                    calc.run(adaptive=False, runtime=runtime)
+                    calc.wait()
 
-                # Analyse the results
-                # Set the equilibration time to 0 (otherwise analysis cannot be performed)
-                calc.recursively_set_attr("_equil_time", 0)
-                calc.recursively_set_attr("_equilibrated", True)
-                dgs, errors = calc.analyse(slurm=True)
-                # Save a csv with detailed results breakdown
-                calc.get_results_df()
-                # Save the calculation
-                calc._dump()
+                    # Analyse the results
+                    # Set the equilibration time to 0 (otherwise analysis cannot be performed)
+                    calc.recursively_set_attr("_equil_time", 0)
+                    calc.recursively_set_attr("_equilibrated", True)
+                    dgs, errors = calc.analyse(slurm=True)
+                    # Save a csv with detailed results breakdown
+                    calc.get_results_df()
+                    # Save the calculation
+                    calc._dump()
 
-            else:  #  We're testing
-                dgs = np.random.uniform(-10, 0, 5)
-                errors = np.random.uniform(0, 2, 5)
+                else:  #  We're testing
+                    dgs = np.random.uniform(-10, 0, 5)
+                    errors = np.random.uniform(0, 2, 5)
 
-            result = ABFEResult(
-                smiles=ligand.to_smiles(),
-                dgs=dgs,
-                errors=errors,
-            )
+                result = ABFEResult(
+                    smiles=ligand.to_smiles(),
+                    dgs=dgs,
+                    errors=errors,
+                )
 
-            # Move results + raw data to dumping location. Make a sub-folder
-            # named with the smiles string of the ligand.
-            if self.dump_to.is_set:
-                dump_folder = self.dump_to.value / f"lig_{lig_idx + 1}"
-                shutil.move(self.work_dir, dump_folder)
-                # Save the smiles string of the ligand to a file in the dump folder.
-                with open(dump_folder / "smiles.txt", "w") as f:
-                    f.write(ligand.to_smiles())
+            except Exception as e:
+                if self.tolerate_errors.value:
+                    self.logger.error(f"Error processing ligand {lig_idx + 1}: {e}")
+                    result = ABFEResult(
+                        smiles=ligand.to_smiles(),
+                        dgs=np.array([np.nan] * 5),
+                        errors=np.array([np.nan] * 5),
+                        exceptions=[e],
+                    )
+                else:
+                    raise e
+
+            finally:
+                # Always copy over the output if requested, so that we can debug
+
+                # Move results + raw data to dumping location. Make a sub-folder
+                # named with the smiles string of the ligand.
+                if self.dump_to.is_set:
+                    dump_folder = self.dump_to.value / f"lig_{lig_idx + 1}"
+                    shutil.move(self.work_dir, dump_folder)
+                    # Save the smiles string of the ligand to a file in the dump folder.
+                    with open(dump_folder / "smiles.txt", "w") as f:
+                        f.write(ligand.to_smiles())
 
             results.append(result)
 
