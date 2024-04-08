@@ -8,4 +8,6 @@ to allow parameterisation, solvation, minimisation, equilibration, production, a
 absolute binding free energy calculations using BioSimSpace.
 """
 
-__all__ = []
+from .parameterise import Parameterise
+
+__all__ = ["Parameterise"]
