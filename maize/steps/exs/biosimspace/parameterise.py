@@ -1,4 +1,4 @@
-"""Nodes using the BioSimSpace package (https://biosimspace.openbiosim.org/index.html)"""
+"""Functionality for parameterising a molecule using BioSimSpace."""
 
 # pylint: disable=import-outside-toplevel, import-error
 
