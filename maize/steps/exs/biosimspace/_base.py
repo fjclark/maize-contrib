@@ -1,8 +1,6 @@
 """A BioSimSpace base Node for running BioSimSpace simulations."""
 
 # pylint: disable=import-outside-toplevel, import-error
-# Import any maize modules you might need.
-# DO NOT import custom packages here! Put them under `run()`!
 from pathlib import Path
 from typing import Any
 
@@ -44,23 +42,12 @@ class _BioSimSpaceBase(Node):
 
     def run(self) -> None:
         """A dummy run function for use in testing."""
-        import BioSimSpace as BSS
-
         sys = self._load_input()
         self._save_output(sys)
 
-    # Functions below are not type-hinted as we can only import BioSimSpace
-    # within the `run()` method.
-    def _load_input(self):
-        """
-        Load the input files. This should only be called within `run()`,
-        and BioSimSpace should be imported as BSS within `run()`.
+    def _load_input(self) -> "BioSimSpace._SireWrappers.System":
+        """Load the input files. This should only be called within `run()`."""
 
-        Returns
-        -------
-        system: BioSimSpace._SireWrappers.System
-            The loaded BioSimSpace system.
-        """
         import BioSimSpace as BSS
 
         input_files = self.inp.receive()
@@ -72,14 +59,8 @@ class _BioSimSpaceBase(Node):
 
         return BSS.IO.readMolecules(input_files)
 
-    def _save_output(self, system) -> None:
-        """
-        Save the output files. This should only be called within `run()`, and
-        BioSimSpace should be imported as BSS within `run()`.
-
-        Inputs: BioSimSpace._SireWrappers.System
-            The BioSimSpace system to save.
-        """
+    def _save_output(self, system: "BioSimSpace._SireWrappers.System") -> None:
+        """Save the output files. This should only be called within `run()`."""
         import BioSimSpace as BSS
 
         self.out.send(
