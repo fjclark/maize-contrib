@@ -29,7 +29,7 @@ _ENGINE_CALLABLES = {
     BSSEngine.SANDER: ["sander"],
     BSSEngine.PMEMD: ["pmemd"],
     BSSEngine.PMEMD_CUDA: ["pmemd.cuda"],
-    BSSEngine.OPENMM: [],
+    BSSEngine.OPENMM: ["sire_python"],
     BSSEngine.SOMD: ["somd"],
     BSSEngine.NAMD: ["namd"],
 }

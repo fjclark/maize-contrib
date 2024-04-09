@@ -1,4 +1,4 @@
-"""Functionality for equilibrating a system using BioSimSpace"""
+"""Functionality for running production MD using BioSimSpace"""
 
 # pylint: disable=import-outside-toplevel, import-error
 
@@ -17,20 +17,20 @@ from .enums import _ENGINE_CALLABLES, BSSEngine, Ensemble
 from .exceptions import BioSimSpaceNullSystemError
 
 __all__ = [
-    "EquilibrateSander",
-    "EquilibrateGromacs",
-    "EquilibrateSander",
-    "EquilibratePmemd",
-    "EquilibratePmemdCuda",
-    "EquilibrateOpenmm",
-    "EquilibrateSomd",
-    "EquilibrateNamd",
+    "ProductionSander",
+    "ProductionGromacs",
+    "ProductionSander",
+    "ProductionPmemd",
+    "ProductionPmemdCuda",
+    "ProductionOpenmm",
+    "ProductionSomd",
+    "ProductionNamd",
 ]
 
 
-class _EquilibrateBase(_BioSimSpaceBase, ABC):
+class _ProductionBase(_BioSimSpaceBase, ABC):
     """
-    Abstract base class for BioSimSpace equilibration nodes.
+    Abstract base class for BioSimSpace production nodes.
     All subclasses should set the biosimspace_engine attribute,
     and the required_callables attribute will be set automatically.
 
@@ -55,17 +55,14 @@ class _EquilibrateBase(_BioSimSpaceBase, ABC):
     timestep: Parameter[float] = Parameter(default=2.0)
     """The integration timestep, in fs."""
 
-    runtime: Parameter[float] = Parameter(default=0.2)
+    runtime: Parameter[float] = Parameter(default=1.0)
     """The running time, in ns."""
 
-    temperature_start: Parameter[float] = Parameter(default=300.0)
-    """The starting temperature, in K."""
+    temperature: Parameter[float] = Parameter(default=300.0)
+    """The temperature, in K."""
 
-    temperature_end: Parameter[float] = Parameter(default=300.0)
-    """The ending temperature, in K."""
-
-    ensemble: Parameter[Ensemble] = Parameter(default=Ensemble.NVT)
-    """The ensemble to use for the equilibration."""
+    ensemble: Parameter[Ensemble] = Parameter(default=Ensemble.NPT)
+    """The ensemble to use."""
 
     pressure: Parameter[float] = Parameter(default=1)
     """
@@ -82,6 +79,9 @@ class _EquilibrateBase(_BioSimSpaceBase, ABC):
     The frequency at which restart configurations and trajectory
     frames are saved. (In integration steps.)
     """
+
+    restart: Parameter[bool] = Parameter(default=False)
+    """Whether this is a continuation of a previous simulation."""
 
     restraint: Parameter[str | list[int]] = Parameter(default=[])
     """
@@ -134,8 +134,7 @@ class _EquilibrateBase(_BioSimSpaceBase, ABC):
         protocol = BSS.Protocol.Equilibration(
             timestep=self.timestep.value * BSS.Units.Time.femtosecond,
             runtime=self.runtime.value * BSS.Units.Time.nanosecond,
-            temperature_start=self.temperature_start.value * BSS.Units.Temperature.kelvin,
-            temperature_end=self.temperature_end.value * BSS.Units.Temperature.kelvin,
+            temperature=self.temperature.value * BSS.Units.Temperature.kelvin,
             pressure=pressure,
             thermostat_time_constant=self.thermostat_time_constant.value
             * BSS.Units.Time.picosecond,
@@ -155,7 +154,7 @@ class _EquilibrateBase(_BioSimSpaceBase, ABC):
 
         # Run the process and wait for it to finish
         self.logger.info(
-            f"Equilibrating system with {self.bss_engine} for {self.runtime.value} ns..."
+            f"Running production MD on system with {self.bss_engine} for {self.runtime.value} ns..."
         )
         process.start()
         equilibrated_system = process.getSystem(block=True)
@@ -176,7 +175,7 @@ class _EquilibrateBase(_BioSimSpaceBase, ABC):
 # Programmatically derive the Minimise classes, ensuring that we include custom docstrings
 for engine in BSSEngine:
     docstring = f"""
-    Equilibrate the system using {engine.name.capitalize()} through BioSimSpace.
+    Run production MD on the system using {engine.name.capitalize()} through BioSimSpace.
 
     Notes
     -----
@@ -187,11 +186,10 @@ for engine in BSSEngine:
     L. O. Hedges et al., JOSS, 2019, 4, 1831.
     L. O. Hedges et al., LiveCoMS, 2023, 5, 2375–2375.
     """
-    # Split the engine name by underscores and capitalise each word
-    class_name = f"Equilibrate{engine.class_name}"
+    class_name = f"Production{engine.class_name}"
     globals()[class_name] = type(
         class_name,
-        (_EquilibrateBase,),
+        (_ProductionBase,),
         {"bss_engine": engine, "__doc__": docstring},
     )
 
@@ -206,9 +204,9 @@ def complex_rst7_path(shared_datadir: Any) -> Any:
     return shared_datadir / "complex.rst7"
 
 
-class TestSuiteEquilibrate:
+class TestSuiteProduction:
     @pytest.mark.parametrize("engine", BSSEngine)
-    def test_biosimspace_equilibrate(
+    def test_biosimspace_production(
         self,
         temp_working_dir: Any,
         complex_prm7_path: Any,
@@ -217,7 +215,7 @@ class TestSuiteEquilibrate:
     ) -> None:
         """Test the BioSimSpace minimisation node."""
 
-        rig = TestRig(globals()[f"Equilibrate{engine.class_name}"])
+        rig = TestRig(globals()[f"Production{engine.class_name}"])
         res = rig.setup_run(
             inputs={"inp": [[complex_prm7_path, complex_rst7_path]]},
             parameters={"runtime": 0.001},

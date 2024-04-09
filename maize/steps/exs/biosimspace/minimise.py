@@ -164,7 +164,7 @@ def complex_rst7_path(shared_datadir: Any) -> Any:
 
 class TestSuiteMinimise:
     # Parameterise, but skip OpenMM as this is failing
-    @pytest.mark.parametrize("engine", [e for e in BSSEngine if e != BSSEngine.OPENMM])
+    @pytest.mark.parametrize("engine", BSSEngine)
     def test_biosimspace_minimise(
         self,
         temp_working_dir: Any,
