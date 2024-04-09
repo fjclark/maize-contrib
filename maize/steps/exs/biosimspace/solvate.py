@@ -30,7 +30,7 @@ class Solvate(_BioSimSpaceBase):
     """BioSimSpace uses gromacs for solvation"""
 
     # Parameters
-    water_model = Parameter[str](default="tip3p")
+    water_model: Parameter[str] = Parameter(default="tip3p")
     """
     The water model to use. Supported water models are shown with
     BioSimSpace.Solvent.waterModels() e.g.:
@@ -42,17 +42,17 @@ class Solvate(_BioSimSpaceBase):
     - tip5p
     """
 
-    ion_conc = Parameter[float](default=0.15)
+    ion_conc: Parameter[float] = Parameter(default=0.15)
     """The ion concentration to use, in M of NaCl."""
 
-    padding = Parameter[float](default=15)
+    padding: Parameter[float] = Parameter(default=15)
     """
     The amount of padding, in Angstroms, to add between the molecule(s) 
     and the edge of the box. Note that any waters already present are
     ignored.
     """
 
-    box_type = Parameter[str](default="rhombicDodecahedronHexagon")
+    box_type: Parameter[str] = Parameter(default="rhombicDodecahedronHexagon")
     """
     The box type to use for solvation. Supported box types are shown with 
     BioSimSpace.Solvent.boxTypes(). There are:

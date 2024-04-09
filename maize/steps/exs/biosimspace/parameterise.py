@@ -49,7 +49,7 @@ class Parameterise(_BioSimSpaceBase):
     - openff_unconstrained-2.0.0
     """
 
-    water_model = Parameter[str](default="tip3p")
+    water_model: Parameter[str] = Parameter(default="tip3p")
     """
     The water model to use. Supported water models are shown with
     BioSimSpace.Solvent.waterModels() e.g.:
