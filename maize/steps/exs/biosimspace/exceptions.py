@@ -1,5 +1,7 @@
 """Custom exceptions for BioSimSpace Nodes."""
 
+__all__ = ["BioSimSpaceNullSystemError"]
+
 
 class BioSimSpaceNullSystemError(Exception):
     """Raised when a BioSimSpace system is None."""

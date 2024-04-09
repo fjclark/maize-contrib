@@ -10,6 +10,8 @@ from maize.core.interface import Input, Output
 from maize.core.node import Node
 from maize.utilities.testing import TestRig
 
+__all__ = []
+
 
 class _BioSimSpaceBase(Node):
     """

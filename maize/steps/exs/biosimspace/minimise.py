@@ -13,8 +13,19 @@ from maize.utilities.testing import TestRig
 
 from ._base import _BioSimSpaceBase
 from ._utils import _ClassProperty
-from .engines import ENGINE_CALLABLES, BSSEngine
+from .engines import _ENGINE_CALLABLES, BSSEngine
 from .exceptions import BioSimSpaceNullSystemError
+
+__all__ = [
+    "MinimiseSander",
+    "MinimiseGromacs",
+    "MinimiseSander",
+    "MinimisePmemd",
+    "MinimisePmemdCuda",
+    "MinimiseOpenmm",
+    "MinimiseSomd",
+    "MinimiseNamd",
+]
 
 
 class _MinimiseBase(_BioSimSpaceBase, ABC):
@@ -38,7 +49,7 @@ class _MinimiseBase(_BioSimSpaceBase, ABC):
 
     @_ClassProperty
     def required_callables(cls) -> list[str]:
-        return ENGINE_CALLABLES[cls.bss_engine]
+        return _ENGINE_CALLABLES[cls.bss_engine]
 
     # Parameters
     steps: Parameter[int] = Parameter(default=10_000)

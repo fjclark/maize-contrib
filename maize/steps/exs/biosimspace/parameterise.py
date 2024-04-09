@@ -11,6 +11,8 @@ from maize.utilities.testing import TestRig
 
 from ._base import _BioSimSpaceBase
 
+__all__ = ["Parameterise"]
+
 
 class Parameterise(_BioSimSpaceBase):
     """

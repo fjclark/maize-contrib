@@ -11,6 +11,8 @@ from maize.utilities.testing import TestRig
 
 from ._base import _BioSimSpaceBase
 
+__all__ = ["Solvate"]
+
 
 class Solvate(_BioSimSpaceBase):
     """

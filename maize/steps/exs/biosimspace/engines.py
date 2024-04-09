@@ -4,6 +4,8 @@ from enum import auto
 
 from maize.utilities.utilities import StrEnum
 
+__all__ = ["BSSEngine"]
+
 
 class BSSEngine(StrEnum):
     """Available BioSimSpace Engines."""
@@ -22,7 +24,7 @@ class BSSEngine(StrEnum):
         return "".join([word.capitalize() for word in self.name.split("_")])
 
 
-ENGINE_CALLABLES = {
+_ENGINE_CALLABLES = {
     BSSEngine.GROMACS: ["gmx"],
     BSSEngine.SANDER: ["sander"],
     BSSEngine.PMEMD: ["pmemd"],
