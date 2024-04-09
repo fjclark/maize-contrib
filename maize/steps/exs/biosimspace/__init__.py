@@ -9,5 +9,6 @@ absolute binding free energy calculations using BioSimSpace.
 """
 
 from .parameterise import Parameterise
+from .solvate import Solvate
 
-__all__ = ["Parameterise"]
+__all__ = ["Parameterise", "Solvate"]
