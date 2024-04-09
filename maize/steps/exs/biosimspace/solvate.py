@@ -137,7 +137,7 @@ def complex_rst7_path(shared_datadir: Any) -> Any:
     return shared_datadir / "complex_dry.rst7"
 
 
-class TestSuiteParameterise:
+class TestSuiteSolvate:
     def test_biosimspace_solvation(
         self,
         temp_working_dir: Any,
