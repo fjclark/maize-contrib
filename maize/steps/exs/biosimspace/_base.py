@@ -42,6 +42,12 @@ class _BioSimSpaceBase(Node):
 
     def run(self) -> None:
         """A dummy run function for use in testing."""
+        # If this is not being run by the base class directly, raise a not implemented error
+        if type(self) is not _BioSimSpaceBase:
+            raise NotImplementedError(
+                "Classes inheriting from _BioSimSpaceBase must implement their own `run()` method."
+            )
+
         sys = self._load_input()
         self._save_output(sys)
 
@@ -68,6 +74,9 @@ class _BioSimSpaceBase(Node):
         )
 
 
+class _DummyBioSimSpaceNode(_BioSimSpaceBase): ...
+
+
 @pytest.fixture
 def complex_prm7_path(shared_datadir: Any) -> Any:
     return shared_datadir / "complex.prm7"
@@ -92,3 +101,14 @@ class TestSuiteBioSimSpaceBase:
         # Get the file name from the path
         file_names = {f.name for f in output}
         assert file_names == {"bss_system.gro", "bss_system.top"}
+
+    def test_dummy_biosimspace_node(
+        self,
+        temp_working_dir: Any,
+        complex_prm7_path: Any,
+        complex_rst7_path: Any,
+    ) -> None:
+        """Test the BioSimSpace base node with two input files."""
+        rig = TestRig(_DummyBioSimSpaceNode)
+        with pytest.raises(NotImplementedError):
+            rig.setup_run(inputs={"inp": [[complex_prm7_path, complex_rst7_path]]})
