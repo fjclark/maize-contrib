@@ -147,8 +147,11 @@ class _ProductionBase(_BioSimSpaceBase, ABC):
         self.logger.info(
             f"Running production MD on system with {self.bss_engine} for {self.runtime.value} ns..."
         )
-        process.start()
+        # Run with "run_command", so that we can submit to external batch system
+        cmd = " ".join([process.exe(), process.getArgString()])
+        self.run_command(cmd)
         equilibrated_system = process.getSystem(block=True)
+
         # BioSimSpace sometimes returns None, so we need to check
         if equilibrated_system is None:
             raise BioSimSpaceNullSystemError("The minimised system is None.")

@@ -104,7 +104,8 @@ class _MinimiseBase(_BioSimSpaceBase, ABC):
 
         # Run the process and wait for it to finish
         self.logger.info(f"Minimising system with {self.bss_engine}...")
-        process.start()
+        cmd = " ".join([process.exe(), process.getArgString()])
+        self.run_command(cmd)
         minimised_system = process.getSystem(block=True)
         # BioSimSpace sometimes returns None, so we need to check
         if minimised_system is None:
