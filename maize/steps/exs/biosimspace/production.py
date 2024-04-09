@@ -16,7 +16,7 @@ from ._utils import _ClassProperty
 from .enums import _ENGINE_CALLABLES, BSSEngine, Ensemble
 from .exceptions import BioSimSpaceNullSystemError
 
-__all__ = [f"Minimise{engine.class_name}" for engine in BSSEngine]
+__all__ = [f"Production{engine.class_name}" for engine in BSSEngine]
 
 
 class _ProductionBase(_BioSimSpaceBase, ABC):
@@ -107,9 +107,9 @@ class _ProductionBase(_BioSimSpaceBase, ABC):
             BSSEngine.SANDER: BSS.Process.Amber,
             BSSEngine.PMEMD: BSS.Process.Amber,
             BSSEngine.PMEMD_CUDA: BSS.Process.Amber,
-            BSSEngine.OPENMM: BSS.Process.OpenMM,
+            # BSSEngine.OPENMM: BSS.Process.OpenMM,
             BSSEngine.SOMD: BSS.Process.Somd,
-            BSSEngine.NAMD: BSS.Process.Namd,
+            # BSSEngine.NAMD: BSS.Process.Namd,
         }
 
         # Get the input
