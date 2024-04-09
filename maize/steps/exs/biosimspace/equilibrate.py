@@ -13,24 +13,24 @@ from maize.utilities.testing import TestRig
 
 from ._base import _BioSimSpaceBase
 from ._utils import _ClassProperty
-from .enums import _ENGINE_CALLABLES, BSSEngine
+from .enums import _ENGINE_CALLABLES, BSSEngine, Ensemble
 from .exceptions import BioSimSpaceNullSystemError
 
 __all__ = [
-    "MinimiseSander",
-    "MinimiseGromacs",
-    "MinimiseSander",
-    "MinimisePmemd",
-    "MinimisePmemdCuda",
-    "MinimiseOpenmm",
-    "MinimiseSomd",
-    "MinimiseNamd",
+    "EquilibrateSander",
+    "EquilibrateGromacs",
+    "EquilibrateSander",
+    "EquilibratePmemd",
+    "EquilibratePmemdCuda",
+    "EquilibrateOpenmm",
+    "EquilibrateSomd",
+    "EquilibrateNamd",
 ]
 
 
-class _MinimiseBase(_BioSimSpaceBase, ABC):
+class _EquilibrateBase(_BioSimSpaceBase, ABC):
     """
-    Abstract base class for BioSimSpace minimisation nodes.
+    Abstract base class for BioSimSpace equilibration nodes.
     All subclasses should set the biosimspace_engine attribute,
     and the required_callables attribute will be set automatically.
 
@@ -52,8 +52,36 @@ class _MinimiseBase(_BioSimSpaceBase, ABC):
         return _ENGINE_CALLABLES[cls.bss_engine]
 
     # Parameters
-    steps: Parameter[int] = Parameter(default=10_000)
-    """The maximum number of steps to perform."""
+    timestep: Parameter[float] = Parameter(default=2.0)
+    """The integration timestep, in fs."""
+
+    runtime: Parameter[float] = Parameter(default=0.2)
+    """The running time, in ns."""
+
+    temperature_start: Parameter[float] = Parameter(default=300.0)
+    """The starting temperature, in K."""
+
+    temperature_end: Parameter[float] = Parameter(default=300.0)
+    """The ending temperature, in K."""
+
+    ensemble: Parameter[Ensemble] = Parameter(default=Ensemble.NVT)
+    """The ensemble to use for the equilibration."""
+
+    pressure: Parameter[float] = Parameter(default=1)
+    """
+    The pressure, in atm. This is ignored if the ensemble is NVT."""
+
+    thermostat_time_constant: Parameter[float] = Parameter(default=1.0)
+    """Time constant for thermostat coupling, in ps."""
+
+    report_interval: Parameter[int] = Parameter(default=100)
+    """The frequency at which statistics are recorded. (In integration steps.)"""
+
+    restart_interval: Parameter[int] = Parameter(default=500)
+    """
+    The frequency at which restart configurations and trajectory
+    frames are saved. (In integration steps.)
+    """
 
     restraint: Parameter[str | list[int]] = Parameter(default=[])
     """
@@ -97,8 +125,18 @@ class _MinimiseBase(_BioSimSpaceBase, ABC):
         system = self._load_input()
 
         # Create the protocol
-        protocol = BSS.Protocol.Minimisation(
-            steps=self.steps.value,
+        pressure = None if self.ensemble.value == Ensemble.NVT else self.pressure.value
+
+        protocol = BSS.Protocol.Equilibration(
+            timestep=self.timestep.value * BSS.Units.Time.femtosecond,
+            runtime=self.runtime.value * BSS.Units.Time.nanosecond,
+            temperature_start=self.temperature_start.value * BSS.Units.Temperature.kelvin,
+            temperature_end=self.temperature_end.value * BSS.Units.Temperature.kelvin,
+            pressure=pressure,
+            thermostat_time_constant=self.thermostat_time_constant.value
+            * BSS.Units.Time.picosecond,
+            report_interval=self.report_interval.value,
+            restart_interval=self.restart_interval.value,
             restraint=self.restraint.value if self.restraint.value else None,
             force_constant=self.force_constant.value,
         )
@@ -112,15 +150,17 @@ class _MinimiseBase(_BioSimSpaceBase, ABC):
         )
 
         # Run the process and wait for it to finish
-        self.logger.info(f"Minimising system with {self.bss_engine}...")
+        self.logger.info(
+            f"Equilibrating system with {self.bss_engine} for {self.runtime.value} ns..."
+        )
         process.start()
-        minimised_system = process.getSystem(block=True)
+        equilibrated_system = process.getSystem(block=True)
         # BioSimSpace sometimes returns None, so we need to check
-        if minimised_system is None:
+        if equilibrated_system is None:
             raise BioSimSpaceNullSystemError("The minimised system is None.")
 
         # Save the output
-        self._save_output(minimised_system)
+        self._save_output(equilibrated_system)
 
     def _get_executable(self) -> str:
         """Get the full path to the executable."""
@@ -132,7 +172,7 @@ class _MinimiseBase(_BioSimSpaceBase, ABC):
 # Programmatically derive the Minimise classes, ensuring that we include custom docstrings
 for engine in BSSEngine:
     docstring = f"""
-    Minimise the system using {engine.name.capitalize()} through BioSimSpace.
+    Equilibrate the system using {engine.name.capitalize()} through BioSimSpace.
 
     Notes
     -----
@@ -144,10 +184,10 @@ for engine in BSSEngine:
     L. O. Hedges et al., LiveCoMS, 2023, 5, 2375–2375.
     """
     # Split the engine name by underscores and capitalise each word
-    class_name = f"Minimise{engine.class_name}"
+    class_name = f"Equilibrate{engine.class_name}"
     globals()[class_name] = type(
         class_name,
-        (_MinimiseBase,),
+        (_EquilibrateBase,),
         {"bss_engine": engine, "__doc__": docstring},
     )
 
@@ -163,9 +203,8 @@ def complex_rst7_path(shared_datadir: Any) -> Any:
 
 
 class TestSuiteMinimise:
-    # Parameterise, but skip OpenMM as this is failing
     @pytest.mark.parametrize("engine", [e for e in BSSEngine if e != BSSEngine.OPENMM])
-    def test_biosimspace_minimise(
+    def test_biosimspace_equilibrate(
         self,
         temp_working_dir: Any,
         complex_prm7_path: Any,
@@ -174,10 +213,10 @@ class TestSuiteMinimise:
     ) -> None:
         """Test the BioSimSpace minimisation node."""
 
-        rig = TestRig(globals()[f"Minimise{engine.class_name}"])
+        rig = TestRig(globals()[f"Equilibrate{engine.class_name}"])
         res = rig.setup_run(
             inputs={"inp": [[complex_prm7_path, complex_rst7_path]]},
-            parameters={"steps": 10},
+            parameters={"runtime": 0.001},
         )
         output = res["out"].get()
         # Get the file name from the path

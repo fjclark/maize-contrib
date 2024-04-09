@@ -35,4 +35,9 @@ _ENGINE_CALLABLES = {
 }
 """A mapping between the BioSimSpace engine and the required callables for each engine."""
 
-# Figure out which engines are available
+
+class Ensemble(StrEnum):
+    """Available ensembles for BioSimSpace simulations."""
+
+    NVT = auto()
+    NPT = auto()
