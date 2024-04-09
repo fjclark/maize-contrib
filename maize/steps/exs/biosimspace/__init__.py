@@ -8,9 +8,9 @@ to allow parameterisation, solvation, minimisation, equilibration, production, a
 absolute binding free energy calculations using BioSimSpace.
 """
 
+from .equilibrate import *
 from .exceptions import *
 from .minimise import *
 from .parameterise import *
+from .production import *
 from .solvate import *
-
-__all__ = ["Parameterise", "Solvate"]

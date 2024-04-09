@@ -11,7 +11,7 @@ from maize.utilities.testing import TestRig
 
 from ._base import _BioSimSpaceBase
 
-__all__ = ["Parameterise"]
+__all__ = [f"Minimise{engine.class_name}" for engine in BSSEngine]
 
 
 class Parameterise(_BioSimSpaceBase):

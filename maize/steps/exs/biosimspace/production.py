@@ -16,16 +16,7 @@ from ._utils import _ClassProperty
 from .enums import _ENGINE_CALLABLES, BSSEngine, Ensemble
 from .exceptions import BioSimSpaceNullSystemError
 
-__all__ = [
-    "ProductionSander",
-    "ProductionGromacs",
-    "ProductionSander",
-    "ProductionPmemd",
-    "ProductionPmemdCuda",
-    "ProductionOpenmm",
-    "ProductionSomd",
-    "ProductionNamd",
-]
+__all__ = [f"Minimise{engine.class_name}" for engine in BSSEngine]
 
 
 class _ProductionBase(_BioSimSpaceBase, ABC):
